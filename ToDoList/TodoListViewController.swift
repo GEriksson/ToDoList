@@ -11,11 +11,15 @@ import UIKit
 class TodoListViewController: UITableViewController {
     
     var itemArray = ["Köp Havregryn", "Köp Walnötter", "Beställ tid hos Kiropraktor"]
+    var defaults = UserDefaults.standard
+    
     var itemChecked  = [false, false, false]
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Do any additional setup after loading the view, typically from a nib.
+        
+        getStoredData()
+        
     }
 
 
@@ -76,6 +80,9 @@ class TodoListViewController: UITableViewController {
         let action = UIAlertAction(title: "Add Item", style: .default) { (action) in
            
             self.itemArray.append(textField.text!)
+            self.defaults.set(self.itemArray, forKey: "TodoListArray")
+            
+            
             self.tableView.reloadData()
             
         }
@@ -93,7 +100,12 @@ class TodoListViewController: UITableViewController {
     }
     
     
-    
+    func getStoredData() {
+        if let items = defaults.array(forKey: "TodoListArray") as? [String] {
+            itemArray = items
+    }
+        
+    }
     
     
 }
