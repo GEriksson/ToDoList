@@ -11,25 +11,14 @@ import UIKit
 class TodoListViewController: UITableViewController {
     
     var itemArray = [Item]()
-
-    var defaults = UserDefaults.standard
     
+    let dataPathFilePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("Items.plist")
 
 
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        let newItem = Item()
-        newItem.title = "Läkarintyg"
-        itemArray.append(newItem)
-        
-        let newItem2 = Item()
-        newItem2.title = "Köp Lingonsylt"
-        itemArray.append(newItem2)
-        
-        let newItem3 = Item()
-        newItem3.title = "Semester"
-        itemArray.append(newItem3)
+        print(dataPathFilePath!)
         
         getStoredData()
         
@@ -69,6 +58,7 @@ class TodoListViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         
         itemArray[indexPath.row].isChecked = !itemArray[indexPath.row].isChecked
+        saveUserData()
         
         tableView.deselectRow(at: indexPath, animated: true)
         tableView.reloadData()
@@ -89,8 +79,8 @@ class TodoListViewController: UITableViewController {
             let newItem = Item()
             newItem.title = textField.text!
             self.itemArray.append(newItem)
-            
-            self.defaults.set(self.itemArray, forKey: "TodoListArray")
+            self.saveUserData()
+
             self.tableView.reloadData()
             
         }
@@ -107,23 +97,35 @@ class TodoListViewController: UITableViewController {
 
     }
     
-    func saveUserDefault(newItem : Item) {
+    func saveUserData() {
 
+        let encoder = PropertyListEncoder()
         
-    }
-    
-    
-    func getStoredData() {
-        // Hämtar från Default array av Item objects
-        if let items = defaults.array(forKey: "TodoListArray") as? [Item] {
+        do {
             
-            itemArray = items
-
+            let data = try encoder.encode(itemArray)
+            try data.write(to: dataPathFilePath!)
+            
+        } catch {
+            print("Error encoding data \(error.localizedDescription)")
         }
         
     }
     
     
-    
-}
+    func getStoredData() {
 
+        if let data = try? Data(contentsOf: dataPathFilePath!) {
+            let decoder = PropertyListDecoder()
+            do {
+                itemArray =  try decoder.decode([Item].self, from: data)
+                
+            } catch {
+                print("Error decoding Items \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    
+
+}
