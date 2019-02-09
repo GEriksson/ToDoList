@@ -7,25 +7,29 @@
 //
 
 import UIKit
+import CoreData
 
 class TodoListViewController: UITableViewController {
     
     var itemArray = [Item]()
     
     let dataPathFilePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("Items.plist")
-
-
+    
+    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
+    
+    @IBOutlet weak var searchBar: UISearchBar!
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        print(dataPathFilePath!)
-        
+        print(FileManager.default.urls(for: .documentDirectory, in: .userDomainMask))
+ //      searchBar.delegate = self
         getStoredData()
         
     }
 
 
-    //MARK - TableView Datasource Method
+    //MARK: - TableView Datasource Method
     override func numberOfSections(in tableView: UITableView) -> Int {
         return 1
     }
@@ -44,7 +48,7 @@ class TodoListViewController: UITableViewController {
         
 //        cell.accessoryType = item.isChecked == true ? .checkmark : .none
         
-        if item.isChecked == false {
+        if item.done == false {
             cell.accessoryType = .none
         } else {
             cell.accessoryType = .checkmark
@@ -54,10 +58,10 @@ class TodoListViewController: UITableViewController {
         
     }
 
-    // MARK - TableView Delegate Method
+    // MARK: - TableView Delegate Method
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         
-        itemArray[indexPath.row].isChecked = !itemArray[indexPath.row].isChecked
+        itemArray[indexPath.row].done = !itemArray[indexPath.row].done
         saveUserData()
         
         tableView.deselectRow(at: indexPath, animated: true)
@@ -65,8 +69,22 @@ class TodoListViewController: UITableViewController {
         
     }
     
+    //MARK: - Delete Row
+    override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
+        if editingStyle == .delete {
+            
+    // 1. Delete context 2. delete itemArray at indexpath.row. 3. delete row in tableview. 4. save context
+            context.delete(itemArray[indexPath.row])
+            itemArray.remove(at: indexPath.row)
+            tableView.deleteRows(at: [indexPath], with: .fade)
+
+            saveUserData()
+        }
+    }
     
-    //MARK - Add button pressed
+    
+    
+    //MARK: - Add button pressed
     
     @IBAction func addButtonPressed(_ sender: UIBarButtonItem) {
         
@@ -75,9 +93,9 @@ class TodoListViewController: UITableViewController {
         
         let action = UIAlertAction(title: "Add Item", style: .default) { (action) in
             
-
-            let newItem = Item()
+            let newItem = Item(context: self.context)
             newItem.title = textField.text!
+            newItem.done = false
             self.itemArray.append(newItem)
             self.saveUserData()
 
@@ -97,17 +115,15 @@ class TodoListViewController: UITableViewController {
 
     }
     
+    
+    
     func saveUserData() {
-
-        let encoder = PropertyListEncoder()
         
         do {
-            
-            let data = try encoder.encode(itemArray)
-            try data.write(to: dataPathFilePath!)
+           try context.save()
             
         } catch {
-            print("Error encoding data \(error.localizedDescription)")
+            print("Error saving Context \(error.localizedDescription)")
         }
         
     }
@@ -115,17 +131,24 @@ class TodoListViewController: UITableViewController {
     
     func getStoredData() {
 
-        if let data = try? Data(contentsOf: dataPathFilePath!) {
-            let decoder = PropertyListDecoder()
-            do {
-                itemArray =  try decoder.decode([Item].self, from: data)
-                
-            } catch {
-                print("Error decoding Items \(error.localizedDescription)")
-            }
+        let request : NSFetchRequest<Item> = Item.fetchRequest()
+        
+        do {
+            itemArray = try context.fetch(request)
+        } catch {
+            print("Error read CoreData \(error.localizedDescription)")
         }
+
     }
     
-    
 
+}
+
+//MARK: - Search bar methods
+extension TodoListViewController: UISearchBarDelegate {
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        
+        
+        
+    }
 }
